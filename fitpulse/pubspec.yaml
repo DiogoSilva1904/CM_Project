@@ -49,6 +49,14 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
+  flutter_map: ^7.0.2  # Add the latest version of flutter_map
+
+  latlong2: ^0.9.1 
+
+  url_launcher: ^6.3.1
+
+  geolocator: ^13.0.1
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

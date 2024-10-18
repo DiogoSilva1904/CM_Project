@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'signupscreen.dart';
+import 'map.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -95,7 +96,24 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Home')),
-      body: Center(child: Text('Welcome to Home Page')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Welcome to Home Page'),
+            SizedBox(height: 20), // Add some spacing
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => MapScreen()), // Navigate to MapScreen
+                );
+              },
+              child: Text('Go to Map Page'), // Button label
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
