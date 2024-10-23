@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'map.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fitpulse/services/mqtt.dart';
 
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
+  
 }
 
 class _HomePageState extends State<HomePage> {
@@ -58,11 +60,44 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final MqttService _mqttService = MqttService();
+  String _heartRate = 'Loading...';  // Default value for heart rate
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeMqtt();
+  }
+
+  Future<void> _initializeMqtt() async {
+    try {
+      await _mqttService.initializeMqttClient();
+      print("MQTT Client initialized");
+      
+      // Listen to heart rate updates from the MQTT service
+      _mqttService.heartRateUpdates.listen((heartRate) {
+        if (mounted) {
+          setState(() {
+            _heartRate = heartRate ?? 'No data';  // Ensure heart rate is valid
+          });
+        }
+      });
+    } catch (e) {
+      print("Error initializing MQTT: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final User? user = FirebaseAuth.instance.currentUser;
-    final String? email = user?.email; //get information from the current loged user
+    final String? email = user?.email;  // Get information from the current logged user
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -77,18 +112,18 @@ class HomeScreen extends StatelessWidget {
                     alignment: Alignment.center,
                     children: [
                       SizedBox(
-                        width: 150,  // Adjust the size for a larger radius
-                        height: 150, // Adjust the size for a larger radius
+                        width: 150,
+                        height: 150,
                         child: CircularProgressIndicator(
-                          value: 0.2,  // Example value
+                          value: 0.2,
                           strokeWidth: 10,
                           backgroundColor: Colors.grey.shade200,
                         ),
                       ),
                       Icon(
-                        Icons.directions_walk,  // Step icon
-                        size: 50,               // Adjust size as needed
-                        color: Colors.deepPurple,  // Change color if needed
+                        Icons.directions_walk,
+                        size: 50,
+                        color: Colors.deepPurple,
                       ),
                     ],
                   ),
@@ -101,10 +136,9 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
             
-            // Metrics Row (Calories, Move Minutes, Distance, Sleep)
+            // Metrics Row (Calories, Move Minutes, Distance)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: const [
@@ -113,18 +147,17 @@ class HomeScreen extends StatelessWidget {
                 MetricWidget(label: 'km', value: '4.6'),
               ],
             ),
-            
             const SizedBox(height: 20),
-            
+
             // Heart Rate Section
             Card(
               child: ListTile(
                 leading: Icon(Icons.favorite, color: Colors.red),
                 title: const Text('Heart Rate'),
                 subtitle: Row(
-                  children: const [
+                  children: [
                     Text(
-                      '78 bpm',  // Example heart rate value
+                      '$_heartRate bpm',  // Display the updated heart rate value
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -134,7 +167,6 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            
             const SizedBox(height: 20),
             
             // Weekly Target Section
@@ -152,7 +184,6 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            
             const SizedBox(height: 20),
             
             // Daily Goals Section
@@ -178,7 +209,14 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+
+  @override
+  void dispose() {
+    _mqttService.client.disconnect();
+    super.dispose();
+  }
 }
+
 
 class MetricWidget extends StatelessWidget {
   final String label;
