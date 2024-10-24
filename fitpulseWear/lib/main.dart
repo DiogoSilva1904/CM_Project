@@ -42,14 +42,16 @@ class _HeartRateMonitorState extends State<HeartRateMonitor> with WidgetsBinding
   double sessionDistance = 0; // Distance covered in the current session
   late MqttServerClient client;
   late Timer workoutTimer;
+  DateTime? lastResetDate; // To track the last reset date
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this); // Observe app lifecycle
     requestPermissions();
+    loadSavedData(); // Load saved data from SharedPreferences
     initializeMqttClient();
-    loadSavedData(); // Load saved steps, calories, and distance from SharedPreferences
+    checkAndResetData(); // Check and reset data if the day has changed
     startWorkoutListener();
   }
 
@@ -60,6 +62,10 @@ class _HeartRateMonitorState extends State<HeartRateMonitor> with WidgetsBinding
       totalSteps = prefs.getInt('totalSteps') ?? 0;
       totalCalories = prefs.getDouble('totalCalories') ?? 0.0;
       totalDistance = prefs.getDouble('totalDistance') ?? 0.0;
+
+      // Load the last reset date or set it to the current date if not available
+      final lastResetString = prefs.getString('lastResetDate');
+      lastResetDate = lastResetString != null ? DateTime.parse(lastResetString) : DateTime.now();
     });
   }
 
@@ -69,6 +75,32 @@ class _HeartRateMonitorState extends State<HeartRateMonitor> with WidgetsBinding
     await prefs.setInt('totalSteps', totalSteps + sessionSteps);
     await prefs.setDouble('totalCalories', totalCalories + sessionCalories);
     await prefs.setDouble('totalDistance', totalDistance + sessionDistance);
+    await prefs.setString('lastResetDate', DateTime.now().toIso8601String()); // Update last reset date
+  }
+
+  void checkAndResetData() async {
+    final now = DateTime.now();
+    
+    // Check if the current day is different from the last reset date
+    if (lastResetDate == null || now.year != lastResetDate!.year || now.month != lastResetDate!.month || now.day != lastResetDate!.day) {
+      // Reset the session data
+      setState(() {
+        sessionSteps = 0;
+        sessionCalories = 0;
+        sessionDistance = 0;
+        totalSteps = 0; // Reset total values if needed
+        totalCalories = 0;
+        totalDistance = 0;
+      });
+
+      saveData(); // Save the reset data in SharedPreferences
+
+      // Save the updated last reset date in SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('lastResetDate', now.toIso8601String());
+
+      print('Daily metrics reset to zero');
+    }
   }
 
   @override
@@ -78,6 +110,7 @@ class _HeartRateMonitorState extends State<HeartRateMonitor> with WidgetsBinding
       stopWorkoutTracking();
     } else if (state == AppLifecycleState.resumed) {
       loadSavedData(); // Load data and restart tracking when app is resumed
+      checkAndResetData(); // Check and reset data if the day has changed
       initializeMqttClient();
       startWorkoutListener();
     }
@@ -207,7 +240,6 @@ class _HeartRateMonitorState extends State<HeartRateMonitor> with WidgetsBinding
       ),
     );
   }
-
 
   @override
   void dispose() {

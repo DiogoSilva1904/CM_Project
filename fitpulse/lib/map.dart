@@ -11,7 +11,7 @@ class MapScreen extends StatefulWidget {
   _MapScreenState createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> {
+class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   LatLng? _currentPosition;
   final MapController _mapController = MapController();
   List<LatLng> _routePoints = [];  // Store the points of the route
@@ -22,13 +22,23 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // Add observer for app lifecycle
     _getCurrentLocation();
   }
 
   @override
   void dispose() {
     _positionStream?.cancel();  // Cancel location stream on disposal
+    WidgetsBinding.instance.removeObserver(this);  // Remove observer
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Check location again when returning from settings
+      _getCurrentLocation();
+    }
   }
 
   Future<void> _getCurrentLocation() async {
@@ -36,15 +46,17 @@ class _MapScreenState extends State<MapScreen> {
       // Check if GPS is enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
+        // Prompt the user to enable location services
+        await _showLocationServiceDialog();
         return;
       }
 
       // Request location permission
       LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
         permission = await Geolocator.requestPermission();
         if (permission != LocationPermission.whileInUse && permission != LocationPermission.always) {
-          return;
+          return; // Exit if permission is still denied
         }
       }
 
@@ -65,6 +77,32 @@ class _MapScreenState extends State<MapScreen> {
     } catch (e) {
       print('Error fetching location: $e');
     }
+  }
+
+  // Show a dialog to prompt the user to enable location services
+  Future<void> _showLocationServiceDialog() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Location Services Disabled'),
+        content: const Text('Please enable location services to use the map.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Geolocator.openLocationSettings();  // Open location settings
+              Navigator.of(context).pop();
+            },
+            child: const Text('Open Settings'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();  // Close the dialog
+            },
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
   }
 
   // Start tracking movement
@@ -170,4 +208,3 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 }
-
