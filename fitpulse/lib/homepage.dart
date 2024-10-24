@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'map.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitpulse/services/mqtt.dart';
+import 'qrcodepage.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -16,12 +17,7 @@ class _HomePageState extends State<HomePage> {
   static final List<Widget> _widgetOptions = <Widget>[
     HomeScreen(),
     const MapScreen(),
-    const Center(
-      child: Text(
-        'Profile Page',
-        style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
-      ),
-    ),
+    QRPage(),
   ];
 
   // Handle tab selection
