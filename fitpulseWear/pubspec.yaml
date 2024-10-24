@@ -38,6 +38,8 @@ dependencies:
   mqtt_client: ^10.2.0
   workout: ^0.6.3
 
+  shared_preferences: ^2.0.13
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
