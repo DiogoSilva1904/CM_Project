@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'qrcode.dart';
+import 'qrcodegen.dart';
 
 class QRPage extends StatefulWidget {
   @override
@@ -30,9 +31,12 @@ class _QRPageState extends State<QRPage> {
                 ElevatedButton(
                   onPressed: () {
                     // Placeholder for another action
-                    print("Another action triggered");
+                   Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => QRGen()),
+                    );
                   },
-                  child: Text('Another Button'),
+                  child: Text('Generate QR Code'),
                 ),
               ],
             ),

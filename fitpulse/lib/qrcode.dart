@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
+import 'dart:convert';
+import 'comparisonpage.dart';
 
 class QRScannerPage extends StatefulWidget {
   @override
@@ -14,6 +16,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: Text("Scan QR Code")),
       body: Column(
         children: <Widget>[
           Expanded(
@@ -26,11 +29,9 @@ class _QRScannerPageState extends State<QRScannerPage> {
           Expanded(
             flex: 1,
             child: Center(
-              child: (result != null)
-                  ? Text('QR Code Data: ${result!.code}')
-                  : Text('Scan a QR code'),
+              child: Text(result != null ? 'Scanned QR code!' : 'Scan a QR code'),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -38,10 +39,33 @@ class _QRScannerPageState extends State<QRScannerPage> {
 
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
-    controller.scannedDataStream.listen((scanData) {
-      setState(() {
-        result = scanData;
-      });
+    controller.scannedDataStream.listen((scanData) async {
+      controller.pauseCamera(); // Pause camera to avoid re-scanning
+      try {
+        // Decode QR data
+        final scannedData = jsonDecode(scanData.code!);
+        final int scannedSteps = scannedData['steps'];
+        final double scannedCalories = scannedData['calories'];
+        final double scannedDistance = scannedData['distance'];
+
+        // Navigate to ComparisonPage
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ComparisonPage(
+              scannedSteps: scannedSteps,
+              scannedCalories: scannedCalories,
+              scannedDistance: scannedDistance,
+            ),
+          ),
+        ).then((_) => controller.resumeCamera());
+      } catch (e) {
+        // Handle potential errors
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Invalid QR code")),
+        );
+        controller.resumeCamera();
+      }
     });
   }
 
