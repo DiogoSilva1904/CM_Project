@@ -56,7 +56,7 @@ class _QRGenState extends State<QRGen> {
     }
 
     final data = jsonEncode({
-      'steps': 10,
+      'steps': _steps,
       'calories': _calories,
       'distance': _distance,
     });
