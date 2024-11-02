@@ -48,8 +48,8 @@ class _HomePageState extends State<HomePage> {
             label: 'Map',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+            icon: Icon(Icons.compare),
+            label: 'Compare',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today),
@@ -128,6 +128,11 @@ class _HomeScreenState extends State<HomeScreen> {
         stepsLast7Days.add(stepsForDay);
       }
       double maxSteps = _stepsLast7Days.reduce((a, b) => a > b ? a : b).toDouble();
+
+      setState(() {
+        _stepsLast7Days = stepsLast7Days.reversed.toList(); // Reverse to show most recent first ex [1500, 2800, 2200, 3500, 1800, 3000, 1000];
+        _maxYValue = maxSteps + 500; // Add a buffer to the max steps to ensure some space above the highest bar
+      });
 
             // Add a buffer to the max steps to ensure some space above the highest bar
       double maxYValue = maxSteps + 500;

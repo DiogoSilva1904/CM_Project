@@ -26,7 +26,7 @@ class _QRPageState extends State<QRPage> {
                       MaterialPageRoute(builder: (context) => QRScannerPage()),
                     );
                   },
-                  child: Text('Go to QRCodePage'),
+                  child: Text('Scan QR Code'),
                 ),
                 ElevatedButton(
                   onPressed: () {
