@@ -240,7 +240,6 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 MetricWidget(label: 'Cal', value: _totalCalories.toStringAsFixed(2)), // Display total calories with 2 decimals
-                MetricWidget(label: 'Move min', value: '154'), // Example value for move minutes
                 MetricWidget(label: 'km', value: (_totalDistance / 1000).toStringAsFixed(2)), // Convert distance to kilometers
               ],
             ),
