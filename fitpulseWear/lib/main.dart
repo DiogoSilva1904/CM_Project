@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
@@ -60,12 +61,11 @@ class _HeartRateMonitorState extends State<HeartRateMonitor> with WidgetsBinding
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       totalSteps = prefs.getInt('totalSteps') ?? 0;
-      totalCalories = prefs.getDouble('totalCalories') ?? 0.0;
-      totalDistance = prefs.getDouble('totalDistance') ?? 0.0;
+      totalCalories = prefs.getDouble('totalCalories') ?? 0;
+      totalDistance = prefs.getDouble('totalDistance') ?? 0;
 
       // Load the last reset date or set it to the current date if not available
-      final lastResetString = prefs.getString('lastResetDate');
-      lastResetDate = lastResetString != null ? DateTime.parse(lastResetString) : DateTime.now();
+      
     });
   }
 
@@ -83,25 +83,29 @@ class _HeartRateMonitorState extends State<HeartRateMonitor> with WidgetsBinding
     
     // Check if the current day is different from the last reset date
     if (lastResetDate == null || now.year != lastResetDate!.year || now.month != lastResetDate!.month || now.day != lastResetDate!.day) {
-      // Reset the session data
+      // Reset total values to zero for the new day
       setState(() {
+        totalSteps = 0;
+        totalCalories = 0;
+        totalDistance = 0;
         sessionSteps = 0;
         sessionCalories = 0;
         sessionDistance = 0;
-        totalSteps = 0; // Reset total values if needed
-        totalCalories = 0;
-        totalDistance = 0;
       });
 
-      saveData(); // Save the reset data in SharedPreferences
+      print('Daily metrics reset to zero');
+      print('Steps: $totalSteps, Calories: $totalCalories, Distance: $totalDistance');
 
-      // Save the updated last reset date in SharedPreferences
+      // Update last reset date and save reset data
+      lastResetDate = now;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('lastResetDate', now.toIso8601String());
-
-      print('Daily metrics reset to zero');
+      await prefs.setInt('totalSteps', totalSteps);
+      await prefs.setDouble('totalCalories', totalCalories);
+      await prefs.setDouble('totalDistance', totalDistance);
     }
   }
+
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -211,35 +215,72 @@ class _HeartRateMonitorState extends State<HeartRateMonitor> with WidgetsBinding
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final contentSize = min(screenSize.width, screenSize.height);
+
     return Scaffold(
-      body: Center(
+      body: PageView(
+        scrollDirection: Axis.vertical,
+        children: [
+          _buildStatTile('Heart Rate', '${heartRate.round()} bpm', Icons.favorite, Colors.red, contentSize),
+          _buildStatTile('Steps', '$totalSteps', Icons.directions_walk, Colors.blue, contentSize),
+          _buildStatTile('Calories', '${totalCalories.toStringAsFixed(2)} kcal', Icons.local_fire_department, Colors.orange, contentSize),
+          _buildStatTile('Distance', '${(totalDistance / 1000).toStringAsFixed(2)} km', Icons.map, Colors.green, contentSize),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatTile(String title, String value, IconData icon, Color color, double size) {
+    double iconSize = size * 0.15;
+    double textSize = size * 0.08;
+    double spacing = size * 0.02;
+
+    return Center(
+      child: Container(
+        width: size,
+        height: size,
+        padding: EdgeInsets.all(size * 0.05),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.grey[800]!, Colors.grey[700]!],
+          ),
+          shape: BoxShape.circle,
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black45,
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: Offset(1, 3),
+            ),
+          ],
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Icon(icon, size: iconSize, color: color),
+            SizedBox(height: spacing),
             Text(
-              'Heart Rate: ${heartRate.round()} bpm',
-              style: const TextStyle(fontSize: 14, color: Colors.white),
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: color,
+                fontSize: textSize,
+              ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: spacing),
             Text(
-              'Total Steps: ${totalSteps + sessionSteps}',
-              style: const TextStyle(fontSize: 14, color: Colors.white),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Total Calories: ${(totalCalories + sessionCalories).toStringAsFixed(2)} kcal', // Display total calories with 2 decimals
-              style: const TextStyle(fontSize: 14, color: Colors.white),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Total Distance: ${((totalDistance + sessionDistance) / 1000).toStringAsFixed(2)} km', // Display total distance in kilometers with 2 decimals
-              style: const TextStyle(fontSize: 14, color: Colors.white),
+              value,
+              style: TextStyle(fontSize: textSize, color: Colors.white),
             ),
           ],
         ),
       ),
     );
   }
+
 
   @override
   void dispose() {
